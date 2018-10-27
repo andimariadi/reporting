@@ -268,78 +268,6 @@ class Api extends CI_Controller {
 		echo json_encode($response);
 	}
 
-	public function old_chart($dev_id='', $data ='', $date = '') {
-		$data = urldecode($data);
-		if ($data == 1 || $data == '') {
-			$data = "SELECT `id` FROM `enum` WHERE `type` = 'analysis' AND `device_id` = {$dev_id}";
-		}
-		if ($date == '7day') {
-			$start_date = date('Y-m-d', strtotime('-7 day'));
-			$end_date = date('Y-m-d');
-		} elseif ($date == 'thismonth') {
-			$start_date = date('Y-m-1');
-			$end_date = date('Y-m-t');
-		} elseif ($date == 'lastmonth') {
-			$start_date = date('Y-m-1', strtotime('-1 month'));
-			$end_date = date('Y-m-t', strtotime('-1 month'));
-		} elseif ($date == '30day') {
-			$start_date = date('Y-m-d', strtotime('-30 day'));
-			$end_date = date('Y-m-d');
-		} else {
-			$start_date = date('Y-m-d', strtotime('-7 day'));
-			$end_date = date('Y-m-d');
-		}
-		$dev = $this->Crud->search('device', array('id' => $dev_id))->row_array()['name'];
-		
-		?>
-	    google.charts.load('current', {'packages':['line']});
-	    google.charts.setOnLoadCallback(drawChart);
-
-	    function drawChart() {
-
-	      var data = new google.visualization.DataTable();
-	      data.addColumn('number', 'Day');
-	      <?php
-	       	$query = $this->Crud->query("SELECT `date`, `enum`.`id`, `enum`.`name`, COUNT(`date`) `count` FROM `report`
-	      	LEFT JOIN `enum` ON `report`.`analysis` = `enum`.`id`
-	      	WHERE `analysis` IN ({$data}) AND `date` BETWEEN '{$start_date}' AND '{$end_date}' AND `report`.`device_id` = '{$dev_id}' GROUP BY `analysis`");
-	      $val = "";
-	      $no = 0;
-	      foreach ($query as $value) {
-	      	$no++;
-	      	echo "data.addColumn('number', '{$value['name']}');";
-	      	$val .= ", COUNT(IF(`enum`.`id` = '{$value['id']}', `analysis`, NULL)) AS name_$no";
-	      }
-	      ?>
-
-	      data.addRows([
-	      	<?php
-	      	$data = $this->Crud->query("SELECT * FROM (SELECT `date`
-	      		{$val}
-	      		FROM `report` LEFT JOIN `enum` ON `report`.`analysis` = `enum`.`id` WHERE `analysis` IN ({$data}) AND `date` BETWEEN '{$start_date}' AND '{$end_date}' AND `report`.`device_id` = '{$dev_id}' GROUP BY `date`) a GROUP BY a.`date`");
-	      	foreach ($data as $value) {
-	      		$names = "";
-	      		echo '[' . date('d', strtotime(($value['date']))) . ', ';
-	      		for ($i=1; $i <= $no; $i++) { 
-	      			$names .= $value['name_' . $i] . ", ";
-	      		}
-	      		echo rtrim($names, ', ') . '], ';
-	      	}
-
-	      	?>
-	        ]);
-
-	      var options = {
-	        chart: { title: 'Chart <?php echo $dev;?> Problem', subtitle: 'data of <?php echo $start_date;?> to <?php echo $end_date;?>' },
-	        height: 500
-	      };
-
-	      var chart = new google.charts.Line(document.getElementById('curve_chart'));
-
-	      chart.draw(data, google.charts.Line.convertOptions(options));
-	    }
-	<?php }
-
 
 	public function chart($dev_id='', $data ='', $date = '', $start = '', $end = '') {
 		$data = urldecode($data);
@@ -365,16 +293,38 @@ class Api extends CI_Controller {
 			$start_date = $start == '' ? date('Y-m-d', strtotime('-7 day')) : date('Y-m-d', strtotime($start));
 			$end_date = $end == '' ? date('Y-m-d') : date('Y-m-d', strtotime($end));
 		}
-		
-		?>
+		$pivot = "";
+		$headtable = "";
+		$query = $this->Crud->sql_query("SELECT `date`, COUNT(`date`) `count` FROM `report` LEFT JOIN `enum` ON `report`.`analysis` = `enum`.`id` WHERE `analysis` IN ({$data}) AND `date` BETWEEN '{$start_date}' AND '{$end_date}' AND `report`.`device_id` = {$dev_id} GROUP BY `date`");
+		foreach ($query->result_array() as $value) {
+			$headtable .= "<th>" . date('d', strtotime($value['date'])) . "</th>";
+	        $pivot .= ",SUM(IF(`date` = '{$value['date']}', `count`, 0)) as `{$value['date']}`";
+	    }
+	    $tabled = $this->Crud->sql_query("SELECT `name` {$pivot} FROM (SELECT `name`,`date`, COUNT(`date`) `count`, `analysis` FROM `report` LEFT JOIN `enum` ON `report`.`analysis` = `enum`.`id` WHERE `analysis` IN ({$data}) AND `date` BETWEEN '{$start_date}' AND '{$end_date}' AND `report`.`device_id` = {$dev_id} GROUP BY `date`, `analysis`) as `a` GROUP BY `analysis`");
+	    //table
+	    echo 'vPool = "";';
+	    echo 'vPool += \'<tr><th>No.</th><th>Prolem</th>' . $headtable . '</tr>\';';
+	    echo 'vX = "";';
+	    $no = 0;
+	    foreach ($tabled->result_array() as $key) {
+	    	$no++;
+	    	$x = "";
+	    	foreach ($query->result_array() as $value) {
+				$x .= "<td>" . $key[$value['date']] . "</td>";
+		    }
+	    	echo "vX += '<tr><td>{$no}</td><td nowrap>{$key['name']}</td>{$x}</tr>';";
+	    }
+	    ?>
+	    $('#table-heading').html(vPool);
+	    $('#table-bodying').html(vX);
+
+
+
 		var bar = new Morris.Bar({
 	      element: 'chart_div',
 	      resize: true,
 	      data: [
 	      <?php
-	      $query = $this->Crud->sql_query("SELECT `date`, COUNT(`date`) `count` FROM `report`
-	          LEFT JOIN `enum` ON `report`.`analysis` = `enum`.`id`
-	          WHERE `analysis` IN ({$data}) AND `date` BETWEEN '{$start_date}' AND '{$end_date}' AND `report`.`device_id` = {$dev_id} GROUP BY `date`");
 	         foreach ($query->result_array() as $value) {
 	          echo "{y: '" .  ucfirst(strtolower($value['date'])) . "', a: {$value['count']}},";
 	         }

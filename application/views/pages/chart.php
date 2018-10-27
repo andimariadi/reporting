@@ -1,9 +1,47 @@
 <body class="hold-transition skin-blue sidebar-mini">
-  <style type="text/css">
-  .totodo .tools > i {
-    color: #dd4b39;
-    cursor: pointer;
-    margin-left: 5px
+<style type="text/css">
+  #year_list > li.active > a, #year_list > li.menu-open > a {
+    color: inherit;
+    background-color: transparent;
+  }
+  #year_list > li > .treeview-menu {
+    background: transparent;
+  }
+  #year_list .treeview-menu > li > a:hover {
+    color: #333;
+  }
+  #year_list > li:hover > a {
+    background: transparent;
+    color: #333;
+  }
+  #year_list li > a > .pull-right-container {
+    right: inherit;
+    margin-left: 20px;
+  }
+  .table-header {
+    color: #fff !important;
+  }
+  .skin-red .table-header, .skin-red-light .table-header {
+    background-color: #dd4b39;
+  }
+  .skin-blue .table-header, .skin-blue-light .table-header {
+    background-color: #3c8dbc;
+  }
+  .skin-black .table-header, .skin-black-light .table-header {
+    color: #333 !important;
+    background-color: #fff;
+  }
+  .skin-purple .table-header, .skin-purple-light .table-header {
+    background-color: #605ca8;
+  }
+  .skin-green .table-header, .skin-green-light .table-header {
+    background-color: #00a65a;
+  }
+  .skin-yellow .table-header, .skin-yellow-light .table-header {
+    background-color: #f39c12;
+  }
+  .table-striped > tbody > tr:nth-of-type(2n+1) {
+    background-color: #ededed;
   }
 </style>
 <div class="wrapper">
@@ -86,7 +124,17 @@
                 </div>
               </div>
               <br />
+              <div id="table-data" style="overflow: auto">
+              <table class="table table-striped">
+                <thead class="table-header" id="table-heading">
+                </thead>
+                <tbody id="table-bodying">
+                </tbody>
+              </table>
+              </div>
+              <br />
               <div id="chart_div" style="height: 500px;"></div>
+              
             </div>
           </div>
         </div>
